@@ -13,7 +13,8 @@ let youtube;
         console.log('[Server] YouTube cookie found. Attempting to sign in.');
         try {
             const cookies = JSON.parse(process.env.YOUTUBE_COOKIE);
-            await youtube.session.signIn(cookies);
+            const cookie_string = cookies.map(c => `${c.name}=${c.value}`).join('; ');
+            await youtube.session.signIn({ cookie: cookie_string });
             console.log('[Server] Successfully signed in with cookies.');
         } catch (e) {
             console.error('[Server] ERROR: Could not sign in with cookies.', e);
