@@ -8,14 +8,19 @@ let youtube;
 
 // Initialize youtubei.js client
 (async () => {
-    youtube = await Innertube.create();
+    youtube = await Innertube.create({ debug: true });
     if (process.env.YOUTUBE_COOKIE && process.env.YOUTUBE_COOKIE.length > 0) {
         console.log('[Server] YouTube cookie found. Attempting to sign in.');
         try {
             const cookies = JSON.parse(process.env.YOUTUBE_COOKIE);
             const cookie_string = cookies.map(c => `${c.name}=${c.value}`).join('; ');
             await youtube.session.signIn({ cookie: cookie_string });
-            console.log('[Server] Successfully signed in with cookies.');
+
+            if (youtube.session.signed_in) {
+                console.log('[Server] Successfully signed in with cookies.');
+            } else {
+                console.log('[Server] WARNING: Sign in call completed but session is not authenticated.');
+            }
         } catch (e) {
             console.error('[Server] ERROR: Could not sign in with cookies.', e);
         }
