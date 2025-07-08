@@ -8,25 +8,24 @@ let youtube;
 
 // Initialize youtubei.js client
 (async () => {
-    const config = { debug: true };
+    youtube = await Innertube.create({ debug: true });
     if (process.env.YOUTUBE_COOKIE && process.env.YOUTUBE_COOKIE.length > 0) {
-        console.log('[Server] YouTube cookie found. Attempting to use for session.');
+        console.log('[Server] YouTube cookie found. Attempting to sign in.');
         try {
             const cookies = JSON.parse(process.env.YOUTUBE_COOKIE);
-            config.cookie = cookies.map(c => `${c.name}=${c.value}`).join('; ');
+            const cookie_string = cookies.map(c => `${c.name}=${c.value}`).join('; ');
+            await youtube.session.signIn(cookie_string);
+
+            if (youtube.session.signed_in) {
+                console.log('[Server] Successfully signed in with cookies.');
+            } else {
+                console.log('[Server] WARNING: Sign in call completed but session is not authenticated.');
+            }
         } catch (e) {
-            console.error('[Server] ERROR: Could not parse YOUTUBE_COOKIE.', e);
+            console.error('[Server] ERROR: Could not sign in with cookies.', e);
         }
     } else {
         console.log('[Server] WARNING: No YouTube cookie found. Downloads will likely fail on the live server.');
-    }
-
-    youtube = await Innertube.create(config);
-
-    if (youtube.session.signed_in) {
-        console.log('[Server] Successfully created authenticated session with cookies.');
-    } else if (process.env.YOUTUBE_COOKIE) {
-        console.log('[Server] WARNING: Cookie was provided, but session is not authenticated.');
     }
 })();
 
