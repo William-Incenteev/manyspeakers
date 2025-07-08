@@ -4,13 +4,18 @@ const socketIo = require('socket.io');
 const path = require('path');
 const ytdl = require('@distube/ytdl-core');
 
-const requestOptions = {};
+let agent;
 // Use the cookie if it's provided in the environment variables
 if (process.env.YOUTUBE_COOKIE && process.env.YOUTUBE_COOKIE.length > 0) {
-    console.log('[Server] YouTube cookie found. Will be used for ytdl-core requests.');
-    requestOptions.headers = {
-        cookie: process.env.YOUTUBE_COOKIE,
-    };
+    console.log('[Server] YouTube cookie found. Attempting to create agent.');
+    try {
+        const cookies = JSON.parse(process.env.YOUTUBE_COOKIE);
+        agent = ytdl.createAgent(cookies);
+        console.log('[Server] Successfully created ytdl agent with cookies.');
+    } catch (e) {
+        console.error('[Server] ERROR: Could not parse YOUTUBE_COOKIE. Make sure it is a valid JSON array.', e);
+        agent = undefined;
+    }
 } else {
     console.log('[Server] WARNING: No YouTube cookie found. Downloads will likely fail on the live server.');
 }
@@ -67,13 +72,13 @@ io.on('connection', (socket) => {
         }
 
         try {
-            const info = await ytdl.getInfo(url, { requestOptions });
+            const info = await ytdl.getInfo(url, { agent });
             const format = ytdl.chooseFormat(info.formats, { quality: 'highestaudio', filter: 'audioonly' });
             
             socket.emit('download-start', { title: info.videoDetails.title });
             console.log(`[Server] Streaming "${info.videoDetails.title}" to host ${socket.id}`);
 
-            const stream = ytdl(url, { format: format, requestOptions });
+            const stream = ytdl(url, { format: format, agent });
 
             stream.on('data', (chunk) => {
                 socket.emit('audio-chunk', chunk);
