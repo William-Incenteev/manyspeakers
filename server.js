@@ -65,37 +65,34 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('download-song', async ({ url }) => {
+    socket.on('download-song', (url) => {
         console.log(`[Server] Received request to download: ${url}`);
-        if (!ytdl.validateURL(url)) {
-            return socket.emit('download-error', 'Invalid YouTube URL');
-        }
-
         try {
-            const info = await ytdl.getInfo(url, { agent });
-            const format = ytdl.chooseFormat(info.formats, { quality: 'highestaudio', filter: 'audioonly' });
-            
-            socket.emit('download-start', { title: info.videoDetails.title });
-            console.log(`[Server] Streaming "${info.videoDetails.title}" to host ${socket.id}`);
+            const stream = ytdl(url, {
+                agent: agent,
+                filter: 'audioonly',
+                quality: 'highestaudio',
+            });
 
-            const stream = ytdl(url, { format: format, agent });
-
+            const chunks = [];
             stream.on('data', (chunk) => {
-                socket.emit('audio-chunk', chunk);
+                chunks.push(chunk);
             });
 
             stream.on('end', () => {
-                console.log(`[Server] Finished streaming to host ${socket.id}.`);
-                socket.emit('download-complete');
+                console.log('[Server] Finished downloading.');
+                const audioBuffer = Buffer.concat(chunks);
+                socket.emit('song-downloaded', audioBuffer.toString('base64'));
             });
 
             stream.on('error', (err) => {
-                 console.error('[Server] Stream error:', err);
-                 socket.emit('download-error', 'Failed to process video.');
+                console.error('[Server] Error during ytdl stream:', err);
+                socket.emit('download-error', 'Could not download the song from YouTube.');
             });
-        } catch (err) {
-            console.error('[Server] Error getting YouTube info:', err);
-            socket.emit('download-error', 'Failed to get video info.');
+
+        } catch (error) {
+            console.error('[Server] Error getting YouTube info:', error);
+            socket.emit('download-error', 'Could not process the YouTube URL.');
         }
     });
 
