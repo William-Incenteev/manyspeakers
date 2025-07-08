@@ -72,6 +72,12 @@ io.on('connection', (socket) => {
                 agent: agent,
                 filter: 'audioonly',
                 quality: 'highestaudio',
+                requestOptions: {
+                    headers: {
+                        'x-youtube-client-name': '1',
+                        'x-youtube-client-version': '2.20210721'
+                    }
+                }
             });
 
             const chunks = [];
