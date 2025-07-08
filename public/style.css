@@ -1,0 +1,44 @@
+body {
+    font-family: sans-serif;
+    background-color: #f0f0f0;
+    color: #333;
+    text-align: center;
+    margin-top: 50px;
+}
+
+h1 {
+    color: #007BFF;
+}
+
+#room-controls {
+    margin-bottom: 20px;
+}
+
+#room-controls div {
+    margin-top: 10px;
+}
+
+#room-id-input {
+    padding: 5px;
+    margin-right: 5px;
+}
+
+#room-info {
+    margin-top: 20px;
+    font-size: 1.2em;
+    font-weight: bold;
+}
+
+#host-controls {
+    margin-top: 30px;
+    padding: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #fff;
+    display: inline-block;
+}
+
+#audio-player {
+    margin-top: 20px;
+    width: 80%;
+}

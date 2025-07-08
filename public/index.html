@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC Speaker Sync</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>WebRTC Speaker Sync</h1>
+
+    <div id="room-controls">
+        <button id="create-room-btn">Create Room</button>
+        <div>
+            <input type="text" id="room-id-input" placeholder="Enter Room ID">
+            <button id="join-room-btn">Join Room</button>
+        </div>
+    </div>
+
+    <div id="room-info"></div>
+
+    <div id="host-controls" style="display: none;">
+        <h3>Host Controls</h3>
+        <div>
+            <input type="text" id="youtube-url-input" placeholder="Enter YouTube URL">
+            <button id="download-btn">Download & Share</button>
+        </div>
+        <div style="margin-top: 10px;">
+            <input type="text" id="message-input" placeholder="Enter a message">
+            <button id="send-message-btn">Send Message</button>
+        </div>
+    </div>
+
+    <audio id="audio-player" controls></audio>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
