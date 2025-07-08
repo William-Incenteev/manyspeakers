@@ -2,23 +2,27 @@ const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
-const ytdl = require('@distube/ytdl-core');
+const { Innertube } = require('youtubei.js');
 
-let agent;
-// Use the cookie if it's provided in the environment variables
-if (process.env.YOUTUBE_COOKIE && process.env.YOUTUBE_COOKIE.length > 0) {
-    console.log('[Server] YouTube cookie found. Attempting to create agent.');
-    try {
-        const cookies = JSON.parse(process.env.YOUTUBE_COOKIE);
-        agent = ytdl.createAgent(cookies);
-        console.log('[Server] Successfully created ytdl agent with cookies.');
-    } catch (e) {
-        console.error('[Server] ERROR: Could not parse YOUTUBE_COOKIE. Make sure it is a valid JSON array.', e);
-        agent = undefined;
+let youtube;
+
+// Initialize youtubei.js client
+(async () => {
+    youtube = await Innertube.create();
+    if (process.env.YOUTUBE_COOKIE && process.env.YOUTUBE_COOKIE.length > 0) {
+        console.log('[Server] YouTube cookie found. Attempting to sign in.');
+        try {
+            const cookies = JSON.parse(process.env.YOUTUBE_COOKIE);
+            await youtube.session.applyIOS(cookies);
+            await youtube.session.signIn(cookies);
+            console.log('[Server] Successfully signed in with cookies.');
+        } catch (e) {
+            console.error('[Server] ERROR: Could not sign in with cookies.', e);
+        }
+    } else {
+        console.log('[Server] WARNING: No YouTube cookie found. Downloads will likely fail on the live server.');
     }
-} else {
-    console.log('[Server] WARNING: No YouTube cookie found. Downloads will likely fail on the live server.');
-}
+})();
 
 const app = express();
 const server = http.createServer(app);
@@ -65,40 +69,30 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('download-song', (url) => {
+    socket.on('download-song', async (url) => {
         console.log(`[Server] Received request to download: ${url}`);
+        if (!youtube) {
+            return socket.emit('download-error', 'Server is not ready to download.');
+        }
         try {
-            const stream = ytdl(url, {
-                agent: agent,
-                filter: 'audioonly',
-                quality: 'highestaudio',
-                requestOptions: {
-                    headers: {
-                        'x-youtube-client-name': '1',
-                        'x-youtube-client-version': '2.20210721'
-                    }
-                }
+            const stream = await youtube.download(url, {
+                type: 'audio',
+                quality: 'best',
+                format: 'mp4'
             });
 
             const chunks = [];
-            stream.on('data', (chunk) => {
+            for await (const chunk of stream) {
                 chunks.push(chunk);
-            });
+            }
 
-            stream.on('end', () => {
-                console.log('[Server] Finished downloading.');
-                const audioBuffer = Buffer.concat(chunks);
-                socket.emit('song-downloaded', audioBuffer.toString('base64'));
-            });
-
-            stream.on('error', (err) => {
-                console.error('[Server] Error during ytdl stream:', err);
-                socket.emit('download-error', 'Could not download the song from YouTube.');
-            });
+            console.log('[Server] Finished downloading.');
+            const audioBuffer = Buffer.concat(chunks);
+            socket.emit('song-downloaded', audioBuffer.toString('base64'));
 
         } catch (error) {
-            console.error('[Server] Error getting YouTube info:', error);
-            socket.emit('download-error', 'Could not process the YouTube URL.');
+            console.error('[Server] Error during youtubei.js download:', error);
+            socket.emit('download-error', 'Could not process the YouTube URL with the new library.');
         }
     });
 
