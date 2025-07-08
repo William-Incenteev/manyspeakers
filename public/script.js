@@ -217,37 +217,39 @@ downloadBtn.addEventListener('click', () => {
     const url = youtubeUrlInput.value;
     if (url) {
         console.log(`[Client] Requesting download for URL: ${url}`);
-        socket.emit('download-song', { url });
+        socket.emit('download-song', url);
         youtubeUrlInput.value = '';
+        roomInfo.textContent = 'Downloading, please wait...';
     }
 });
 
-socket.on('download-start', (data) => {
-    console.log(`[Client] Download started for: ${data.title}`);
-    audioChunks = [];
-    roomInfo.textContent = `Downloading: ${data.title}...`;
-});
+socket.on('song-downloaded', (base64Audio) => {
+    console.log('[Client] Song downloaded. Decoding and sharing.');
+    try {
+        const byteCharacters = atob(base64Audio);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const audioBlob = new Blob([byteArray], { type: 'audio/mp4' });
 
-socket.on('audio-chunk', (chunk) => {
-    audioChunks.push(chunk);
-});
+        const audioUrl = URL.createObjectURL(audioBlob);
+        audioPlayer.src = audioUrl;
+        roomInfo.textContent = `Download Finished! Sharing with peers...`;
 
-socket.on('download-complete', () => {
-    console.log('[Client] Download complete. Assembling file.');
-    const audioBlob = new Blob(audioChunks, { type: 'audio/mp4' });
-    const audioUrl = URL.createObjectURL(audioBlob);
-    audioPlayer.src = audioUrl;
-    roomInfo.textContent = `Download Finished! Sharing with peers...`;
-
-    console.log('[Client] Sharing audio file with all peers.');
-    peersReady.clear(); // Reset the ready set for the new song
-    for (const socketId in dataChannels) {
-        dataChannels[socketId].send(audioBlob);
-    }
-
-    // If there are no peers, the host can just play.
-    if (Object.keys(dataChannels).length === 0) {
-        roomInfo.textContent = 'Ready to play.';
+        console.log('[Client] Sharing audio file with all peers.');
+        peersReady.clear(); 
+        for (const socketId in dataChannels) {
+            dataChannels[socketId].send(audioBlob);
+        }
+        
+        if (Object.keys(dataChannels).length === 0) {
+            roomInfo.textContent = 'Ready to play.';
+        }
+    } catch (e) {
+        console.error('[Client] Error decoding or handling the downloaded song:', e);
+        roomInfo.textContent = 'Error: Could not process the downloaded song.';
     }
 });
 
