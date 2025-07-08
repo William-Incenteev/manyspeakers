@@ -8,24 +8,25 @@ let youtube;
 
 // Initialize youtubei.js client
 (async () => {
-    youtube = await Innertube.create({ debug: true });
+    const config = { debug: true };
     if (process.env.YOUTUBE_COOKIE && process.env.YOUTUBE_COOKIE.length > 0) {
-        console.log('[Server] YouTube cookie found. Attempting to sign in.');
+        console.log('[Server] YouTube cookie found. Attempting to use for session.');
         try {
             const cookies = JSON.parse(process.env.YOUTUBE_COOKIE);
-            const cookie_string = cookies.map(c => `${c.name}=${c.value}`).join('; ');
-            await youtube.session.signIn({ cookie: cookie_string });
-
-            if (youtube.session.signed_in) {
-                console.log('[Server] Successfully signed in with cookies.');
-            } else {
-                console.log('[Server] WARNING: Sign in call completed but session is not authenticated.');
-            }
+            config.cookie = cookies.map(c => `${c.name}=${c.value}`).join('; ');
         } catch (e) {
-            console.error('[Server] ERROR: Could not sign in with cookies.', e);
+            console.error('[Server] ERROR: Could not parse YOUTUBE_COOKIE.', e);
         }
     } else {
         console.log('[Server] WARNING: No YouTube cookie found. Downloads will likely fail on the live server.');
+    }
+
+    youtube = await Innertube.create(config);
+
+    if (youtube.session.signed_in) {
+        console.log('[Server] Successfully created authenticated session with cookies.');
+    } else if (process.env.YOUTUBE_COOKIE) {
+        console.log('[Server] WARNING: Cookie was provided, but session is not authenticated.');
     }
 })();
 
