@@ -4,6 +4,11 @@ const socketIo = require('socket.io');
 const path = require('path');
 const ytdl = require('@distube/ytdl-core');
 
+// Use the cookie if it's provided in the environment variables
+if (process.env.YOUTUBE_COOKIE) {
+    ytdl.setToken({ youtube: { cookie: process.env.YOUTUBE_COOKIE } });
+}
+
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
