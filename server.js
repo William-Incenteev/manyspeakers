@@ -5,8 +5,11 @@ const path = require('path');
 const ytdl = require('@distube/ytdl-core');
 
 // Use the cookie if it's provided in the environment variables
-if (process.env.YOUTUBE_COOKIE) {
+if (process.env.YOUTUBE_COOKIE && process.env.YOUTUBE_COOKIE.length > 0) {
+    console.log('[Server] YouTube cookie found in environment variables. Applying it to ytdl-core.');
     ytdl.setToken({ youtube: { cookie: process.env.YOUTUBE_COOKIE } });
+} else {
+    console.log('[Server] WARNING: No YouTube cookie found. Downloads will likely fail on the live server.');
 }
 
 const app = express();
